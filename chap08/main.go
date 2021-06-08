@@ -1,33 +1,47 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"sync"
 	"time"
 )
 
-func watchDog(stopch chan bool, task string) {
+//func watchDog(stopch chan bool, task string) {
+//	for {
+//		select {
+//		case <-stopch:
+//			fmt.Println("end this goroutin")
+//			return
+//		default:
+//			fmt.Println("I am doing ", task)
+//
+//		}
+//	}
+//}
+func watchDog(ctx context.Context, i int) {
 	for {
 		select {
-		case <-stopch:
-			fmt.Println("end this goroutin")
+		case <-ctx.Done():
+			fmt.Println("i am going to end ", i, "goroutinue")
 			return
 		default:
-			fmt.Println("I am doing ", task)
-
+			fmt.Println("i am dog", i)
 		}
+		time.Sleep(1 * time.Second)
 	}
 }
 func main() {
 	var wg sync.WaitGroup
-	wg.Add(1)
-	ch := make(chan bool)
-	go func() {
-		defer wg.Done()
-		go watchDog(ch, "监控狗1")
-	}()
+	wg.Add(5)
+	ctx, stop := context.WithCancel(context.Background())
+	for i := 0; i < 5; i++ {
+		go func(num int) {
+			defer wg.Done()
+			watchDog(ctx, num)
+		}(i)
+	}
 	time.Sleep(5 * time.Second)
-	ch <- true
-	fmt.Println("after 5 seconds ,the task is over")
+	stop()
 	wg.Wait()
 }
